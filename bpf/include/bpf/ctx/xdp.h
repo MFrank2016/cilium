@@ -34,8 +34,16 @@ xdp_load_bytes(struct xdp_md *ctx, __u64 off, void *to, const __u64 len)
 	 * so force it the way we want it in order to open up a range
 	 * on the reg.
 	 */
+	/* Note, the %[from] = 0 is normally not needed, but it's a
+	 * verifier workaround. Issue seen is that w/o the assignment,
+	 * LLVM codegen outside the asm volatile() may just spill the
+	 * %[from] reg to stack before the if (!ret) check even if it
+	 * has garbage, but it's still logically correct. Verifier can
+	 * complain that %[from] is an uninitialized reg however.
+	 */
 	asm volatile("r1 = *(u32 *)(%[ctx] +0)\n\t"
 		     "r2 = *(u32 *)(%[ctx] +4)\n\t"
+		     "%[from] = 0\n\t"
 		     "if %[off] > %[offmax] goto +6\n\t"
 		     "r1 += %[off]\n\t"
 		     "%[from] = r1\n\t"
@@ -62,6 +70,7 @@ xdp_store_bytes(struct xdp_md *ctx, __u64 off, const void *from,
 	/* See xdp_load_bytes(). */
 	asm volatile("r1 = *(u32 *)(%[ctx] +0)\n\t"
 		     "r2 = *(u32 *)(%[ctx] +4)\n\t"
+		     "%[to] = 0\n\t"
 		     "if %[off] > %[offmax] goto +6\n\t"
 		     "r1 += %[off]\n\t"
 		     "%[to] = r1\n\t"
@@ -149,6 +158,7 @@ l3_csum_replace(struct xdp_md *ctx, __u64 off, const __u32 from, __u32 to,
 	/* See xdp_load_bytes(). */
 	asm volatile("r1 = *(u32 *)(%[ctx] +0)\n\t"
 		     "r2 = *(u32 *)(%[ctx] +4)\n\t"
+		     "%[sum] = 0\n\t"
 		     "if %[off] > %[offmax] goto +6\n\t"
 		     "r1 += %[off]\n\t"
 		     "%[sum] = r1\n\t"
@@ -186,6 +196,7 @@ l4_csum_replace(struct xdp_md *ctx, __u64 off, __u32 from, __u32 to,
 	/* See xdp_load_bytes(). */
 	asm volatile("r1 = *(u32 *)(%[ctx] +0)\n\t"
 		     "r2 = *(u32 *)(%[ctx] +4)\n\t"
+		     "%[sum] = 0\n\t"
 		     "if %[off] > %[offmax] goto +6\n\t"
 		     "r1 += %[off]\n\t"
 		     "%[sum] = r1\n\t"
