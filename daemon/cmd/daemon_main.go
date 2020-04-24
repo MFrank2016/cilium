@@ -1580,6 +1580,10 @@ func initKubeProxyReplacementOptions() {
 
 	if option.Config.EnableNodePort &&
 		option.Config.NodePortAcceleration != option.NodePortAccelerationNone {
+		if option.Config.Tunnel != option.TunnelDisabled {
+			log.Fatal("Cannot use NodePort acceleration with tunneling. Only direct routing mode supported at this point.")
+		}
+
 		if option.Config.XDPDevice != "undefined" &&
 			option.Config.XDPDevice != option.Config.Device {
 			log.Fatalf("Cannot set NodePort acceleration device: mismatch between Prefilter device %s and NodePort device %s",
